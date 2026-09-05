@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ŠKODA Parts Desk — Order Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --forest:#12342A;
+    --forest-deep:#0B241C;
+    --emerald:#4BA82E;
+    --paper:#F6F4EE;
+    --panel:#FFFFFF;
+    --ink:#1C1C1A;
+    --ink-soft:#5B5C55;
+    --line:#DCD7C8;
+    --amber:#C97A2B;
+    --red:#B33A2E;
+    --ok:#3F7D3A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    line-height:1.5;
+  }
+  h1,h2,h3,.mono-label{font-family:'Space Grotesk', sans-serif;}
+
+  /* ---------- Top identity band ---------- */
+  .topband{background:var(--forest-deep);color:#EFEAD9;padding:22px clamp(16px,4vw,48px) 0;}
+  .topband-inner{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;border-bottom:1px solid rgba(239,234,217,0.18);padding-bottom:18px;}
+  .brandmark{display:flex;align-items:center;gap:12px;}
+  .wing{width:34px;height:34px;flex:none;}
+  .brand-text h1{margin:0;font-size:20px;font-weight:700;letter-spacing:0.01em;color:#fff;}
+  .brand-text p{margin:2px 0 0;font-size:12.5px;color:#B9C9BB;}
+  .doc-meta{text-align:right;font-family:'IBM Plex Mono', monospace;font-size:11.5px;color:#9FB6A2;line-height:1.6;}
+  .doc-meta input{background:transparent;border:none;border-bottom:1px dashed rgba(159,182,162,0.5);color:#EFEAD9;font-family:'IBM Plex Mono', monospace;font-size:11.5px;width:150px;text-align:right;padding:1px 0;}
+  .doc-meta input:focus{outline:none;border-bottom-color:var(--emerald);}
+  .admin-flag{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:20px;margin-left:10px;font-family:'IBM Plex Mono', monospace;}
+  .admin-flag.off{background:rgba(255,255,255,0.08);color:#9FB6A2;}
+  .admin-flag.on{background:rgba(75,168,46,0.22);color:#8FE07A;}
+
+  /* ---------- Tabs ---------- */
+  nav.tabs{display:flex;gap:2px;padding:0 clamp(16px,4vw,48px);background:var(--forest-deep);flex-wrap:wrap;}
+  nav.tabs button{font-family:'Space Grotesk', sans-serif;background:transparent;border:none;color:#9FB6A2;padding:12px 18px;font-size:13.5px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:color .15s ease, border-color .15s ease;}
+  nav.tabs button:hover{color:#DDEBDC;}
+  nav.tabs button.active{color:#fff;border-bottom:3px solid var(--emerald);}
+  nav.tabs button.admin-tab-btn{margin-left:auto;color:#E3B65C;}
+  nav.tabs button.admin-tab-btn.active{border-bottom-color:#E3B65C;}
+
+  main{max-width:1360px;margin:0 auto;padding:28px clamp(16px,4vw,48px) 80px;}
+  section.panel{display:none;}
+  section.panel.active{display:block;}
+
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:16px;}
+  .panel-head h2{margin:0 0 4px;font-size:19px;color:var(--forest-deep);}
+  .panel-head p{margin:0;color:var(--ink-soft);font-size:12.8px;max-width:62ch;}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;}
+  button.btn{font-family:'IBM Plex Sans', sans-serif;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:3px;border:1px solid var(--forest);background:var(--forest);color:#fff;cursor:pointer;}
+  button.btn.ghost{background:transparent;color:var(--forest);}
+  button.btn:hover{opacity:0.88;}
+  button.btn:disabled{opacity:0.4;cursor:not-allowed;}
+  button.btn.danger{border-color:var(--red);background:transparent;color:var(--red);}
+  button.btn.gold{border-color:#B98A2E;background:#B98A2E;}
+
+  /* ---------- Banner ---------- */
+  .mode-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 16px;border-radius:4px;margin-bottom:16px;font-size:12.8px;}
+  .mode-banner.locked{background:#F1EFE7;border:1px solid var(--line);color:var(--ink-soft);}
+  .mode-banner.unlocked{background:#EAF3E6;border:1px solid #BFE0B4;color:#2C5B22;}
+
+  /* ---------- Table styling ---------- */
+  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:1300px;}
+  thead th{position:sticky;top:0;background:var(--forest);color:#EFEAD9;font-family:'Space Grotesk', sans-serif;font-weight:600;font-size:11.2px;letter-spacing:0.01em;text-align:left;padding:10px 9px;border-right:1px solid rgba(239,234,217,0.12);white-space:nowrap;}
+  tbody td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:12.8px;}
+  tbody td.editable-cell{padding:8px 9px;min-width:88px;}
+  tbody td.editable-cell[contenteditable="true"]:focus{outline:2px solid var(--emerald);outline-offset:-2px;background:#F2F8EF;}
+  tbody td.receipt-display{padding:8px 9px;min-width:110px;background:#FBF6E6 !important;border-left:2px solid #E3B65C;text-align:center;color:#6B5A22;}
+  tbody td.receipt-display:empty::before{content:"—";color:#C9B889;}
+  td.update-cell{background:#FBF6E6 !important;border-left:2px solid #E3B65C;text-align:center;padding:6px !important;}
+  button.btn-inline-update{font-family:'IBM Plex Sans', sans-serif;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:3px;border:1px solid #B98A2E;background:#fff;color:#8A6A1E;cursor:pointer;white-space:nowrap;}
+  button.btn-inline-update:hover{background:#FBF0D8;}
+  tbody tr:nth-child(even) td{background:#FBFAF6;}
+  tbody tr.example-row td{background:#EAF3E6;color:var(--ink-soft);font-style:italic;}
+  td.num{text-align:right;font-family:'IBM Plex Mono', monospace;}
+  td.center{text-align:center;}
+  td.readonly{background:#F1EFE7 !important;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;}
+  td.rowdel{text-align:center;cursor:pointer;color:var(--red);font-family:'IBM Plex Mono', monospace;font-size:13px;padding:8px !important;}
+  td.rowdel:hover{background:#F7E4E1 !important;}
+  td.rowdel.disabled{color:#C9C6BA;cursor:default;}
+  td.rowdel.disabled:hover{background:inherit !important;}
+
+  select.cell-select, input.cell-date, input.cell-num{width:100%;border:none;background:transparent;font-size:12.8px;font-family:'IBM Plex Sans', sans-serif;padding:8px 6px;}
+  input.cell-date, input.cell-num{font-family:'IBM Plex Mono', monospace;}
+  select.cell-select:focus, input.cell-date:focus, input.cell-num:focus{outline:2px solid var(--emerald);outline-offset:-2px;}
+  select.cell-select:disabled, input.cell-date:disabled, input.cell-num:disabled{color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink);}
+
+  .status-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+  .st-Invoiced-In-Transit{background:#D9F0EC;color:#146B5D;}
+  .st-Ordered{background:#DCE7F5;color:#2C5188;}
+  .st-Partially-Received{background:#F3E1CE;color:var(--amber);}
+  .st-Received{background:#DCEEDA;color:var(--ok);}
+  .st-Backorder{background:#F5D9D5;color:var(--red);}
+  .st-Cancelled{background:#E6E4DC;color:var(--ink-soft);}
+  .st-Open{background:#F5D9D5;color:var(--red);}
+  .st-Closed{background:#DCEEDA;color:var(--ok);}
+  .ot-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#E4E0F3;color:#4A3B8A;}
+
+  /* ---------- KPI / dashboard ---------- */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px,1fr));gap:12px;margin-bottom:24px;}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--emerald);border-radius:3px;padding:16px 16px;}
+  .kpi .kpi-label{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
+  .kpi .kpi-value{font-family:'Space Grotesk', sans-serif;font-size:26px;font-weight:700;color:var(--forest-deep);}
+  .kpi.warn{border-left-color:var(--amber);}
+  .kpi.alert{border-left-color:var(--red);}
+
+  .subhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:28px 0 12px;}
+  .subhead h3{margin:0;font-size:15px;color:var(--forest-deep);}
+  .subhead select{font-family:'IBM Plex Sans', sans-serif;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;background:#fff;}
+
+  table.month-table{min-width:100%;}
+  table.month-table thead th{background:#EFEAE0;color:var(--forest-deep);position:static;}
+  table.month-table td{font-size:12.8px;}
+  .bar-cell{padding:8px 10px !important;}
+  .bar-track{background:#EDEAE0;border-radius:3px;height:14px;overflow:hidden;min-width:120px;}
+  .bar-fill{background:linear-gradient(90deg,var(--emerald),#3C8A26);height:100%;border-radius:3px;}
+
+  .legend{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px 20px;margin-top:22px;font-size:12.8px;color:var(--ink-soft);}
+  .legend h3{margin:0 0 10px;font-size:13px;color:var(--forest-deep);}
+  .legend .swatch-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+  .swatch{width:14px;height:14px;border-radius:2px;flex:none;margin-top:2px;}
+
+  /* ---------- Admin tab ---------- */
+  .admin-card{max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:26px 28px;margin:0 auto;}
+  .admin-card h3{margin:0 0 6px;font-size:16px;color:var(--forest-deep);}
+  .admin-card p{margin:0 0 18px;font-size:12.8px;color:var(--ink-soft);}
+  .admin-card label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
+  .admin-card input[type="password"]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:3px;font-family:'IBM Plex Mono', monospace;font-size:13px;margin-bottom:12px;}
+  .admin-status{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:4px;background:#EAF3E6;border:1px solid #BFE0B4;color:#2C5B22;font-size:13px;margin-bottom:16px;}
+  .warn-note{background:#FBF1E0;border:1px solid #EAD3A0;color:#7A5A17;border-radius:4px;padding:12px 14px;font-size:12px;margin-top:16px;}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,36,28,0.55);z-index:50;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal-box{background:#fff;border-radius:6px;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;padding:24px 26px 20px;}
+  .modal-box h3{margin:0 0 4px;font-size:17px;color:var(--forest-deep);}
+  .modal-box p.hint{margin:0 0 18px;font-size:12.5px;color:var(--ink-soft);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+  .form-grid .full{grid-column:1 / -1;}
+  .form-grid label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;}
+  .form-grid input, .form-grid select, .form-grid textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:3px;font-family:'IBM Plex Sans', sans-serif;font-size:13px;}
+  .form-grid textarea{resize:vertical;min-height:44px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+
+  footer{text-align:center;padding:24px;color:var(--ink-soft);font-size:11.5px;}
+
+  @media print{
+    nav.tabs, .actions, .rowdel, footer, .topband, .modal-overlay{display:none !important;}
+    section.panel{display:block !important;page-break-after:always;}
+    body{background:#fff;}
+    .table-wrap{border:none;}
+  }
+  @media (max-width:640px){.doc-meta{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="topband">
+  <div class="topband-inner">
+    <div class="brandmark">
+      <svg class="wing" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="23" stroke="#4BA82E" stroke-width="2"/>
+        <path d="M24 8 L30 24 L24 40 L18 24 Z" fill="#4BA82E"/>
+      </svg>
+      <div class="brand-text">
+        <h1>ŠKODA Parts Desk</h1>
+        <p>Spare Parts Order Management — dealership working format</p>
+      </div>
+    </div>
+    <div class="doc-meta">
+      DEALERSHIP: <input type="text" placeholder="type dealer name"><br>
+      GENERATED: <span id="genDate"></span>
+      <span class="admin-flag off" id="adminFlag">Admin mode: OFF</span>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="register">Order Register</button>
+    <button class="tab-btn" data-tab="master">Parts Master</button>
+    <button class="tab-btn" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="backup">💾 Backup</button>
+    <button class="tab-btn" data-tab="export">⬇ Export</button>
+    <button class="tab-btn admin-tab-btn" data-tab="admin">🔒 Admin</button>
+  </nav>
+</div>
+
+<main>
+
+  <!-- ================= ORDER REGISTER ================= -->
+  <section class="panel active" id="panel-register">
+    <div class="panel-head">
+      <div>
+        <h2>Parts Order Register</h2>
+        <p>One row per part ordered. Total and Qty Pending calculate automatically. Existing entries are locked — use <strong>+ New Order</strong> to log a fresh order.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="openOrderModal()">+ New Order</button>
+        <button class="btn ghost" onclick="window.print()">Print / Save as PDF</button>
+      </div>
+    </div>
+
+    <div class="mode-banner locked" id="registerModeBanner">
+      <span id="registerModeText">🔒 View-only mode — entries are locked, except goods-receipt fields (use the ✎ Update button on any row). Log in as Admin to edit or delete anything else.</span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="table-register">
+        <thead>
+          <tr>
+            <th style="width:26px"></th>
+            <th>Order No.</th>
+            <th>Order Date</th>
+            <th>Order Type</th>
+            <th>Job Card / RO No.</th>
+            <th>Customer Name</th>
+            <th>Vehicle Reg. No.</th>
+            <th>VIN</th>
+            <th>Part No.</th>
+            <th>Part Description</th>
+            <th>Part Category</th>
+            <th>Qty Ordered</th>
+            <th>Unit Price (₹)</th>
+            <th>Total (₹)</th>
+            <th>Supplier</th>
+            <th>Status</th>
+            <th>Expected Delivery</th>
+            <th>Qty Received</th>
+            <th>Qty Pending</th>
+            <th>Received Date</th>
+            <th title="Anyone can update this — not locked by Admin mode">DMS Receipt No. ✎</th>
+            <th title="Anyone can update this — not locked by Admin mode">DMS Receipt Date ✎</th>
+            <th title="Update Qty Received / Received Date / DMS Receipt No. / DMS Receipt Date">Update</th>
+            <th>Case Status</th>
+            <th>Invoice No.</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="register-tbody">
+          <!-- rows injected by JS via addRegisterRow() -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= PARTS MASTER ================= -->
+  <section class="panel" id="panel-master">
+    <div class="panel-head">
+      <div>
+        <h2>Parts Master / Stock List</h2>
+        <p>Catalogue of parts held or regularly ordered. Reorder flag calculates from current stock vs. reorder level.</p>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" onclick="addMasterRow()">+ Add row</button>
+      </div>
+    </div>
+
+    <div class="admin-card" style="max-width:100%;margin-bottom:20px;">
+      <h3 style="margin-bottom:14px;">Bulk stock &amp; reorder-level tools</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Upload current stock (Excel)</label>
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleStockUpload(this)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:3px;font-size:12px;">
+          <p style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Columns needed: <strong>Part No.</strong> and <strong>Current Stock</strong>. Matches existing rows by Part No. and updates their stock figure; part numbers not already in this table are added as new rows.</p>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Upload 6-month movement (Excel)</label>
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleMovementUpload(this)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:3px;font-size:12px;">
+          <p style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Columns needed: <strong>Part No.</strong> and one column per month — <strong>Month 1</strong> through <strong>Month 6</strong> — with qty issued that month. Calculates average daily usage and sets Max Level (30 days), Reorder Level (20 days) and Min Level (10 days) automatically.</p>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Export reorder list</label>
+          <button class="btn" style="width:100%" onclick="exportReorderListCSV()">⬇ Export Reorder List (CSV)</button>
+          <p style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Lists every part currently flagged "Reorder", with a suggested Qty to Order that brings stock back up to Max Level.</p>
+        </div>
+      </div>
+      <div class="warn-note" style="margin-top:16px;">Both Excel uploads need an internet connection the first time you use them in a session — they use the same spreadsheet library as the Export tab. Header names are matched case-insensitively, so "part no", "Part No.", and "PART NO" all work.</div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="table-master">
+        <thead>
+          <tr>
+            <th style="width:26px"></th>
+            <th>Part No.</th>
+            <th>Part Description</th>
+            <th>Category</th>
+            <th>Unit Price (₹)</th>
+            <th>Current Stock</th>
+            <th>Reorder Level</th>
+            <th title="Auto-set by 6-month movement upload — 30 days of average usage">Max Level</th>
+            <th title="Auto-set by 6-month movement upload — 10 days of average usage">Min Level</th>
+            <th>Reorder?</th>
+            <th>Bin / Rack Location</th>
+            <th>Preferred Supplier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="example-row">
+            <td class="rowdel" title="Example row — delete before use" onclick="delRow(this)">✕</td>
+            <td contenteditable="true">5Q0129620E</td>
+            <td contenteditable="true">Air Filter Element</td>
+            <td contenteditable="true">Engine</td>
+            <td contenteditable="true" class="num">850</td>
+            <td contenteditable="true" class="num stock" oninput="calcMaster(this)">6</td>
+            <td contenteditable="true" class="num reorder" oninput="calcMaster(this)">5</td>
+            <td contenteditable="true" class="num maxlevel">9</td>
+            <td contenteditable="true" class="num minlevel">3</td>
+            <td class="center readonly flag"><span class="status-pill st-Received">OK</span></td>
+            <td contenteditable="true">R3-B2</td>
+            <td contenteditable="true">Skoda Auto India (OEM)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section class="panel" id="panel-dashboard">
+    <div class="panel-head">
+      <div>
+        <h2>Dashboard</h2>
+        <p>Live snapshot calculated from the Order Register and Parts Master tabs.</p>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" onclick="refreshDashboard()">Refresh</button>
+      </div>
+    </div>
+
+    <div class="subhead" style="margin-top:0;background:#EFEAE0;border:1px solid var(--line);border-radius:4px;padding:10px 14px;">
+      <h3 style="font-size:13px;">📅 Filter this dashboard by month</h3>
+      <select id="monthFilter" onchange="refreshDashboard()">
+        <option value="all">All months</option>
+      </select>
+    </div>
+
+    <div class="subhead">
+      <h3>Case status overview</h3>
+    </div>
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi"><div class="kpi-label">Total orders logged</div><div class="kpi-value" id="kpi-total">0</div></div>
+      <div class="kpi warn"><div class="kpi-label">Open cases</div><div class="kpi-value" id="kpi-pending">0</div></div>
+      <div class="kpi"><div class="kpi-label">Closed cases</div><div class="kpi-value" id="kpi-received">0</div></div>
+      <div class="kpi alert"><div class="kpi-label">Backorder cases</div><div class="kpi-value" id="kpi-backorder">0</div></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Total order value (₹)</div><div class="kpi-value" id="kpi-value">0</div></div>
+      <div class="kpi warn"><div class="kpi-label">Value in open cases (₹)</div><div class="kpi-value" id="kpi-pendingvalue">0</div></div>
+      <div class="kpi alert"><div class="kpi-label">Parts below reorder level</div><div class="kpi-value" id="kpi-reorder">0</div></div>
+    </div>
+
+    <div class="subhead">
+      <h3>Order type breakdown</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="month-table">
+        <thead>
+          <tr>
+            <th>Order Type</th>
+            <th>Orders</th>
+            <th>Total Value (₹)</th>
+            <th>Open</th>
+            <th>Closed</th>
+            <th style="width:30%">Value Share (%)</th>
+          </tr>
+        </thead>
+        <tbody id="ordertype-tbody">
+          <tr><td colspan="6" style="padding:14px;color:var(--ink-soft);">No orders logged yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="subhead">
+      <h3>Part category breakdown</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="month-table">
+        <thead>
+          <tr>
+            <th>Part Category</th>
+            <th>Orders</th>
+            <th>Total Value (₹)</th>
+            <th>Open</th>
+            <th>Closed</th>
+            <th style="width:30%">Value Share (%)</th>
+          </tr>
+        </thead>
+        <tbody id="category-tbody">
+          <tr><td colspan="6" style="padding:14px;color:var(--ink-soft);">No orders logged yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="subhead">
+      <h3>Month-wise report</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="month-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Orders</th>
+            <th>Total Value (₹)</th>
+            <th>Closed</th>
+            <th>Open</th>
+            <th>Backorder</th>
+            <th style="width:30%">Value share</th>
+          </tr>
+        </thead>
+        <tbody id="month-tbody">
+          <tr><td colspan="7" style="padding:14px;color:var(--ink-soft);">No orders logged yet — add an order to see the monthly breakdown.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <h3>How to use this format</h3>
+      <div class="swatch-row"><span class="swatch" style="background:#EFEAE0"></span> The <strong>month filter</strong> at the top of the Dashboard drives everything below it — KPIs, Order Type breakdown, Part Category breakdown, and the Month-wise report all update together when you pick a month.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#4BA82E"></span> Use <strong>+ New Order</strong> on the Order Register tab to log a new part order — anyone can add entries.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#0B241C"></span> Once saved, an entry is locked. Only someone logged into the <strong>Admin</strong> tab can edit a cell or delete a row.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#E3B65C"></span> The gold-highlighted <strong>Qty Received, Received Date, DMS Receipt No.</strong> and <strong>DMS Receipt Date</strong> columns are the one exception — click the <strong>✎ Update</strong> button on any row to fill these in, no Admin login needed. Entering a DMS Receipt No. flips a Received order's Case Status from Open to Closed.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#F5D9D5"></span> <strong>Open</strong> = not yet fully received and closed off (covers Invoiced/In-Transit, Ordered, Partially Received, Backorder, and Received-without-DMS-Receipt-No.). <strong>Closed</strong> = Received with a DMS Receipt No. entered.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#F1EFE7"></span> Grey cells (Total, Qty Pending, Reorder flag) always calculate automatically — don't type into these.</div>
+      <div class="swatch-row"><span class="swatch" style="background:#12342A"></span> Use <em>Print / Save as PDF</em> on the Order Register tab for a printable copy for the parts counter.</div>
+      <p style="margin-top:10px;">Note: this page keeps data only for your current browser session — closing the tab clears it. Print or copy out entries you need to keep, or ask for a version with permanent storage.</p>
+    </div>
+  </section>
+
+  <!-- ================= BACKUP ================= -->
+  <section class="panel" id="panel-backup">
+    <div class="panel-head">
+      <div>
+        <h2>Backup &amp; Restore</h2>
+        <p>This page only holds data for your current browser session — download a backup regularly and keep it somewhere safe. You can restore from it anytime, including after data is accidentally lost or cleared.</p>
+      </div>
+    </div>
+
+    <div class="admin-card" style="max-width:560px;">
+      <h3>Download backup</h3>
+      <p>Saves everything in the Order Register and Parts Master to a single .json file on your device.</p>
+      <button class="btn" style="width:100%" onclick="downloadBackup()">⬇ Download Backup (.json)</button>
+      <p id="backup-summary" style="margin-top:10px;font-size:12px;color:var(--ink-soft);">No backup taken yet this session.</p>
+    </div>
+
+    <div class="admin-card" style="max-width:560px;margin-top:20px;">
+      <h3>Restore from backup</h3>
+      <p>Choose a previously downloaded backup file below. <strong>This replaces everything currently on screen</strong> — you'll be asked to confirm the order and parts-master counts before anything is overwritten.</p>
+      <input type="file" id="restoreFileInput" accept=".json,application/json" onchange="handleRestoreFileChosen(this)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:3px;font-size:12.5px;">
+      <div class="warn-note" style="margin-top:14px;">Backup files are plain text — anyone who opens one can read every order, customer name and vehicle number in it. Store them the same way you'd store a spreadsheet with that information, not in a shared or public folder.</div>
+    </div>
+  </section>
+
+  <!-- ================= EXPORT ================= -->
+  <section class="panel" id="panel-export">
+    <div class="panel-head">
+      <div>
+        <h2>Export</h2>
+        <p>Export the full Order Register to an Excel file with two sheets — one for Open cases, one for Closed cases.</p>
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:20px;max-width:520px;">
+      <div class="kpi warn"><div class="kpi-label">Open cases to export</div><div class="kpi-value" id="export-open-count">0</div></div>
+      <div class="kpi"><div class="kpi-label">Closed cases to export</div><div class="kpi-value" id="export-closed-count">0</div></div>
+    </div>
+
+    <button class="btn" onclick="exportToExcel()">⬇ Export to Excel (2 sheets)</button>
+
+    <div class="warn-note" style="margin-top:18px;max-width:560px;">This button needs an internet connection the first time you use it — it loads a small spreadsheet library from cdnjs.cloudflare.com to build the .xlsx file. If you're offline, it will show an error instead of downloading.</div>
+  </section>
+
+  <section class="panel" id="panel-admin">
+    <div class="panel-head">
+      <div>
+        <h2>Admin</h2>
+        <p>Password-gated controls for editing or deleting existing entries in the Order Register.</p>
+      </div>
+    </div>
+
+    <div id="adminLoginBox">
+      <div class="admin-card">
+        <h3>Admin login</h3>
+        <p>Enter the admin password to unlock editing and deletion on the Order Register.</p>
+        <label for="adminPass">Password</label>
+        <input type="password" id="adminPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')tryAdminLogin()">
+        <button class="btn gold" style="width:100%" onclick="tryAdminLogin()">Unlock Admin Mode</button>
+        <div class="warn-note">This is a basic front-end password gate meant to stop casual/accidental edits by counter staff — it is <strong>not real security</strong>. Anyone who views this file's source code can read the password, so don't rely on it to protect sensitive data. The default password is <code>skoda2026</code> — change it by editing <code>ADMIN_PASSWORD</code> near the bottom of the HTML file before handing this out.</div>
+      </div>
+    </div>
+
+    <div id="adminActiveBox" style="display:none;">
+      <div class="admin-card" style="max-width:520px;">
+        <div class="admin-status">✅ Admin mode is active — the Order Register is now editable and rows can be deleted.</div>
+        <p style="margin:0 0 16px;">Go to the <strong>Order Register</strong> tab to edit any cell directly, or use the ✕ column to delete a row. Log out when you're done to lock entries again.</p>
+        <button class="btn danger" style="width:100%" onclick="adminLogout()">Log out of Admin Mode</button>
+      </div>
+
+      <div class="admin-card" style="max-width:520px;margin-top:20px;">
+        <h3>Change admin password</h3>
+        <p>Sets a new password for the rest of this browser session.</p>
+        <label for="pw-current">Current password</label>
+        <input type="password" id="pw-current" placeholder="Current password">
+        <label for="pw-new">New password</label>
+        <input type="password" id="pw-new" placeholder="New password">
+        <label for="pw-confirm">Confirm new password</label>
+        <input type="password" id="pw-confirm" placeholder="Re-enter new password">
+        <button class="btn gold" style="width:100%" onclick="changeAdminPassword()">Update Password</button>
+        <div class="warn-note">This change only lasts for the current browser tab/session — reopening this file (or refreshing the page) reverts to the built-in default. To make a new password permanent, edit the <code>ADMIN_PASSWORD</code> line near the bottom of the HTML file's source code, or ask Claude to update it for you and re-download the file.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= NEW ORDER MODAL ================= -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal-box">
+    <h3>Log a new order</h3>
+    <p class="hint">Fill in the details below. Once saved, the entry is locked — an Admin login is needed to change or delete it afterwards.</p>
+    <div class="form-grid">
+      <div><label>Order No.</label><input type="text" id="f-orderno" placeholder="PO-2026-0002"></div>
+      <div><label>Order Date</label><input type="date" id="f-orderdate"></div>
+      <div>
+        <label>Order Type</label>
+        <select id="f-ordertype">
+          <option>Special Order(ZSO)</option>
+          <option>Special Order(ZSO2)</option>
+          <option>Volume Order(ZVA)</option>
+          <option>Nora(ZCS)</option>
+          <option>Initial Stock Order(ZINI)</option>
+          <option>Campaign Order(ZAK)</option>
+        </select>
+      </div>
+      <div><label>Job Card / RO No.</label><input type="text" id="f-jobcard"></div>
+      <div><label>Customer Name</label><input type="text" id="f-customer"></div>
+      <div><label>Vehicle Reg. No.</label><input type="text" id="f-vehicle"></div>
+      <div><label>VIN</label><input type="text" id="f-vin"></div>
+      <div><label>Part No.</label><input type="text" id="f-partno"></div>
+      <div class="full"><label>Part Description</label><input type="text" id="f-partdesc"></div>
+      <div>
+        <label>Part Category</label>
+        <select id="f-partcategory">
+          <option>Genuine Parts</option>
+          <option>Genuine Accessories</option>
+          <option>Oil</option>
+          <option>Tyre</option>
+        </select>
+      </div>
+      <div><label>Qty Ordered</label><input type="number" id="f-qty" value="1" min="0"></div>
+      <div><label>Unit Price (₹)</label><input type="number" id="f-price" value="0" min="0" step="0.01"></div>
+      <div><label>Supplier</label><input type="text" id="f-supplier" value="Skoda Auto India" readonly style="background:#F1EFE7;color:var(--ink-soft);"></div>
+      <div>
+        <label>Status</label>
+        <select id="f-status">
+          <option>Invoiced/In-Transit</option>
+          <option selected>Ordered</option>
+          <option>Partially Received</option>
+          <option>Received</option>
+          <option>Backorder</option>
+          <option>Cancelled</option>
+        </select>
+      </div>
+      <div><label>Expected Delivery</label><input type="date" id="f-expected"></div>
+      <div><label>Invoice No.</label><input type="text" id="f-invoice"></div>
+      <div class="full"><label>Remarks</label><textarea id="f-remarks"></textarea></div>
+    </div>
+    <p class="hint" style="margin-top:14px;margin-bottom:0;">Qty Received, Received Date, DMS Receipt No. and DMS Receipt Date aren't collected here — once the order is saved, use the <strong>✎ Update</strong> button on that row to fill those in when the goods actually arrive.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeOrderModal()">Cancel</button>
+      <button class="btn" onclick="saveOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RECEIPT UPDATE MODAL ================= -->
+<div class="modal-overlay" id="updateModal">
+  <div class="modal-box" style="max-width:420px;">
+    <h3>Update receipt details</h3>
+    <p class="hint" id="u-context">—</p>
+    <div class="form-grid">
+      <div class="full"><label>Qty Received</label><input type="number" id="u-qty" min="0"></div>
+      <div class="full"><label>Received Date</label><input type="date" id="u-recvdate"></div>
+      <div class="full"><label>DMS Receipt No.</label><input type="text" id="u-dmsreceipt" placeholder="Required to close a Received case"></div>
+      <div class="full"><label>DMS Receipt Date</label><input type="date" id="u-dmsdate"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeUpdateModal()">Cancel</button>
+      <button class="btn" onclick="saveUpdateModal()">Save Update</button>
+    </div>
+  </div>
+</div>
+
+<footer>ŠKODA Parts Desk — internal working format · not an official Škoda Auto document</footer>
+
+<script>
+document.getElementById('genDate').textContent = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+
+/* =====================================================================
+   TABS
+===================================================================== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='dashboard' || btn.dataset.tab==='export'){ refreshDashboard(); }
+  });
+});
+
+/* =====================================================================
+   ADMIN MODE
+   NOTE: client-side only — a convenience gate against accidental edits,
+   not real access control. Change ADMIN_PASSWORD below before use.
+===================================================================== */
+let ADMIN_PASSWORD = "skoda2026";
+let isAdmin = false;
+
+function tryAdminLogin(){
+  const val = document.getElementById('adminPass').value;
+  if(val === ADMIN_PASSWORD){
+    isAdmin = true;
+    document.getElementById('adminLoginBox').style.display='none';
+    document.getElementById('adminActiveBox').style.display='block';
+    document.getElementById('adminPass').value='';
+    applyAdminMode();
+  } else {
+    alert('Incorrect password.');
+  }
+}
+function adminLogout(){
+  isAdmin = false;
+  document.getElementById('adminLoginBox').style.display='block';
+  document.getElementById('adminActiveBox').style.display='none';
+  applyAdminMode();
+}
+function changeAdminPassword(){
+  const current = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  const confirmPw = document.getElementById('pw-confirm').value;
+  if(current !== ADMIN_PASSWORD){
+    alert('Current password is incorrect.');
+    return;
+  }
+  if(!newPw){
+    alert('Enter a new password.');
+    return;
+  }
+  if(newPw !== confirmPw){
+    alert('New password and confirmation do not match.');
+    return;
+  }
+  ADMIN_PASSWORD = newPw;
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  alert('Password updated for this session. Remember: reopening this file will revert to the default password unless the ADMIN_PASSWORD line in the source is also updated.');
+}
+function applyAdminMode(){
+  const flag = document.getElementById('adminFlag');
+  flag.textContent = 'Admin mode: ' + (isAdmin ? 'ON' : 'OFF');
+  flag.className = 'admin-flag ' + (isAdmin ? 'on' : 'off');
+
+  const banner = document.getElementById('registerModeBanner');
+  const bannerText = document.getElementById('registerModeText');
+  if(isAdmin){
+    banner.className='mode-banner unlocked';
+    bannerText.textContent = '🔓 Admin mode active — every cell in the register is editable and rows can be deleted.';
+  } else {
+    banner.className='mode-banner locked';
+    bannerText.textContent = '🔒 View-only mode — entries are locked, except goods-receipt fields (use the ✎ Update button on any row). Log in as Admin to edit or delete anything else.';
+  }
+
+  const tbody = document.getElementById('register-tbody');
+  tbody.querySelectorAll('td.editable-cell').forEach(td=>{
+    td.setAttribute('contenteditable', isAdmin ? 'true' : 'false');
+  });
+  tbody.querySelectorAll('input.cell-date, input.cell-num, select.cell-select').forEach(el=>{
+    el.disabled = !isAdmin;
+  });
+  tbody.querySelectorAll('td.rowdel').forEach(td=>{
+    td.classList.toggle('disabled', !isAdmin);
+    td.title = isAdmin ? 'Delete this order' : 'Admin login required to delete';
+  });
+}
+
+/* =====================================================================
+   ORDER REGISTER — row builder
+===================================================================== */
+const STATUSES = ["Invoiced/In-Transit","Ordered","Partially Received","Received","Backorder","Cancelled"];
+const ORDER_TYPES = ["Special Order(ZSO)","Special Order(ZSO2)","Volume Order(ZVA)","Nora(ZCS)","Initial Stock Order(ZINI)","Campaign Order(ZAK)"];
+const PART_CATEGORIES = ["Genuine Parts","Genuine Accessories","Oil","Tyre"];
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function formatDateDisplay(iso){
+  if(!iso) return '';
+  const parts = iso.split('-');
+  if(parts.length!==3) return iso;
+  const [y,m,d] = parts;
+  return `${d}-${MONTH_NAMES[parseInt(m,10)-1]}-${y}`;
+}
+function statusClass(s){ return 'st-'+s.replace(/[^a-zA-Z0-9]+/g,'-'); }
+
+function buildSelect(options, selected, cls, onchange){
+  const sel = document.createElement('select');
+  sel.className = cls;
+  options.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o; opt.textContent=o;
+    if(o===selected) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.disabled = !isAdmin;
+  if(onchange) sel.addEventListener('change', onchange);
+  return sel;
+}
+
+function makeEditableTd(text){
+  const td=document.createElement('td');
+  td.className='editable-cell';
+  td.setAttribute('contenteditable', isAdmin ? 'true':'false');
+  td.textContent = text||'';
+  return td;
+}
+function makeReceiptDisplayTd(value, cls, isDate){
+  const td=document.createElement('td');
+  td.className='readonly receipt-display '+(cls||'');
+  if(isDate){
+    td.dataset.iso = value||'';
+    td.textContent = value ? formatDateDisplay(value) : '';
+  } else {
+    td.textContent = value||'';
+  }
+  return td;
+}
+function makeDateTd(value){
+  const td=document.createElement('td');
+  td.className='center';
+  const inp=document.createElement('input');
+  inp.type='date'; inp.className='cell-date'; inp.value=value||''; inp.disabled=!isAdmin;
+  td.appendChild(inp);
+  return td;
+}
+function makeNumTd(value, cls, oninput){
+  const td=document.createElement('td');
+  td.className='center';
+  const inp=document.createElement('input');
+  inp.type='number'; inp.className='cell-num '+(cls||''); inp.value=value||0; inp.disabled=!isAdmin;
+  if(oninput) inp.addEventListener('input', oninput);
+  td.appendChild(inp);
+  return td;
+}
+
+function addRegisterRow(data, isExample){
+  const tbody = document.getElementById('register-tbody');
+  const tr = document.createElement('tr');
+  if(isExample) tr.classList.add('example-row');
+
+  // 0: delete
+  const delTd=document.createElement('td');
+  delTd.className='rowdel'+(isAdmin?'':' disabled');
+  delTd.textContent='✕';
+  delTd.title=isAdmin?'Delete this order':'Admin login required to delete';
+  delTd.onclick=()=>{ if(isAdmin){ tr.remove(); refreshDashboard(); } else { alert('Log in on the Admin tab to delete entries.'); } };
+  tr.appendChild(delTd);
+
+  tr.appendChild(makeEditableTd(data.orderNo));
+  tr.appendChild(makeDateTd(data.orderDate));
+
+  const otTd=document.createElement('td'); otTd.className='center';
+  otTd.appendChild(buildSelect(ORDER_TYPES, data.orderType||'Special Order(ZSO)','cell-select'));
+  tr.appendChild(otTd);
+
+  tr.appendChild(makeEditableTd(data.jobCard));
+  tr.appendChild(makeEditableTd(data.customer));
+  tr.appendChild(makeEditableTd(data.vehicle));
+  tr.appendChild(makeEditableTd(data.vin));
+  tr.appendChild(makeEditableTd(data.partNo));
+  tr.appendChild(makeEditableTd(data.partDesc));
+
+  const catTd=document.createElement('td'); catTd.className='center';
+  catTd.appendChild(buildSelect(PART_CATEGORIES, data.partCategory||'Genuine Parts','cell-select'));
+  tr.appendChild(catTd);
+
+  const qtyTd = makeNumTd(data.qty, 'qty', ()=>calcRow(tr));
+  tr.appendChild(qtyTd);
+  const priceTd = makeNumTd(data.price, 'price', ()=>calcRow(tr));
+  tr.appendChild(priceTd);
+
+  const totalTd=document.createElement('td');
+  totalTd.className='num readonly total';
+  totalTd.textContent=((data.qty||0)*(data.price||0)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  tr.appendChild(totalTd);
+
+  tr.appendChild(makeEditableTd(data.supplier));
+
+  const stTd=document.createElement('td'); stTd.className='center';
+  stTd.appendChild(buildSelect(STATUSES, data.status||'Invoiced/In-Transit','cell-select '+statusClass(data.status||'Invoiced/In-Transit'), (e)=>{ e.target.className='cell-select '+statusClass(e.target.value); updateCaseStatus(tr); refreshDashboard(); }));
+  tr.appendChild(stTd);
+
+  tr.appendChild(makeDateTd(data.expected));
+
+  const recvTd = makeReceiptDisplayTd(data.recv||0, 'recv', false);
+  tr.appendChild(recvTd);
+
+  const pendTd=document.createElement('td');
+  pendTd.className='num readonly pending';
+  pendTd.textContent=(data.qty||0)-(data.recv||0);
+  tr.appendChild(pendTd);
+
+  tr.appendChild(makeReceiptDisplayTd(data.recvDate||'', 'recvDateCell', true));
+  tr.appendChild(makeReceiptDisplayTd(data.dmsReceipt||'', 'dmsNoCell', false));
+  tr.appendChild(makeReceiptDisplayTd(data.dmsReceiptDate||'', 'dmsDateCell', true));
+
+  const updateTd=document.createElement('td');
+  updateTd.className='update-cell';
+  const updateBtn=document.createElement('button');
+  updateBtn.className='btn-inline-update';
+  updateBtn.type='button';
+  updateBtn.textContent='✎ Update';
+  updateBtn.title='Update Qty Received, Received Date, DMS Receipt No. & DMS Receipt Date — no Admin login required';
+  updateBtn.onclick=()=>openUpdateModal(tr);
+  updateTd.appendChild(updateBtn);
+  tr.appendChild(updateTd);
+
+  const caseTd=document.createElement('td');
+  caseTd.className='center readonly casestatus';
+  tr.appendChild(caseTd);
+
+  tr.appendChild(makeEditableTd(data.invoice));
+  tr.appendChild(makeEditableTd(data.remarks));
+
+  tbody.appendChild(tr);
+  updateCaseStatus(tr);
+  return tr;
+}
+
+function computeCaseStatus(status, dmsReceipt){
+  if(status==='Cancelled') return 'Cancelled';
+  if(status==='Received' && dmsReceipt && dmsReceipt.trim()!=='') return 'Closed';
+  return 'Open';
+}
+function updateCaseStatus(tr){
+  const status = tr.children[15]?.querySelector('select')?.value || '';
+  const dmsReceipt = tr.children[20]?.textContent || '';
+  const cs = computeCaseStatus(status, dmsReceipt);
+  const cell = tr.children[23];
+  if(!cell) return;
+  const cls = cs==='Closed' ? 'st-Closed' : (cs==='Cancelled' ? 'st-Cancelled' : 'st-Open');
+  const note = (status==='Received' && cs==='Open') ? ' title="DMS Receipt No. missing — case cannot close"' : '';
+  cell.innerHTML = `<span class="status-pill ${cls}"${note}>${cs}</span>`;
+}
+
+function calcRow(tr){
+  const qty = parseFloat(tr.querySelector('.qty')?.value) || 0;
+  const price = parseFloat(tr.querySelector('.price')?.value) || 0;
+  const recv = parseFloat(tr.querySelector('.recv')?.textContent) || 0;
+  tr.querySelector('.total').textContent = (qty*price).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  tr.querySelector('.pending').textContent = qty-recv;
+  refreshDashboard();
+}
+
+/* =====================================================================
+   RECEIPT UPDATE MODAL — Qty Received, Received Date, DMS Receipt No.,
+   DMS Receipt Date. Open to everyone, not gated behind Admin mode.
+===================================================================== */
+let currentUpdateRow = null;
+
+function openUpdateModal(tr){
+  currentUpdateRow = tr;
+  const qtyOrdered = parseFloat(tr.querySelector('.qty')?.value) || 0;
+  document.getElementById('u-context').textContent =
+    (tr.children[1]?.textContent.trim() || '(no Order No.)') + ' — ' + (tr.children[8]?.textContent.trim() || '');
+  document.getElementById('u-qty').value = tr.querySelector('.recv')?.textContent || 0;
+  document.getElementById('u-qty').max = '';
+  document.getElementById('u-recvdate').value = tr.querySelector('.recvDateCell')?.dataset.iso || '';
+  document.getElementById('u-dmsreceipt').value = tr.querySelector('.dmsNoCell')?.textContent || '';
+  document.getElementById('u-dmsdate').value = tr.querySelector('.dmsDateCell')?.dataset.iso || '';
+  document.getElementById('updateModal').classList.add('active');
+}
+function closeUpdateModal(){
+  document.getElementById('updateModal').classList.remove('active');
+  currentUpdateRow = null;
+}
+function saveUpdateModal(){
+  if(!currentUpdateRow) return;
+  const tr = currentUpdateRow;
+  const qty = parseFloat(document.getElementById('u-qty').value)||0;
+  const recvDateIso = document.getElementById('u-recvdate').value;
+  const dmsNo = document.getElementById('u-dmsreceipt').value.trim();
+  const dmsDateIso = document.getElementById('u-dmsdate').value;
+
+  const recvCell = tr.querySelector('.recv');
+  recvCell.textContent = qty;
+
+  const recvDateCell = tr.querySelector('.recvDateCell');
+  recvDateCell.dataset.iso = recvDateIso;
+  recvDateCell.textContent = recvDateIso ? formatDateDisplay(recvDateIso) : '';
+
+  const dmsNoCell = tr.querySelector('.dmsNoCell');
+  dmsNoCell.textContent = dmsNo;
+
+  const dmsDateCell = tr.querySelector('.dmsDateCell');
+  dmsDateCell.dataset.iso = dmsDateIso;
+  dmsDateCell.textContent = dmsDateIso ? formatDateDisplay(dmsDateIso) : '';
+
+  const qtyOrdered = parseFloat(tr.querySelector('.qty')?.value) || 0;
+  tr.querySelector('.pending').textContent = qtyOrdered - qty;
+
+  // Auto-update Status once goods-receipt info is entered.
+  // Full quantity received -> "Received"; partial quantity -> "Partially Received".
+  // A Cancelled order is left alone even if receipt fields are filled in by mistake.
+  const statusSelect = tr.children[15]?.querySelector('select');
+  if(statusSelect && qty > 0 && statusSelect.value !== 'Cancelled'){
+    const newStatus = (qtyOrdered > 0 && qty >= qtyOrdered) ? 'Received' : 'Partially Received';
+    statusSelect.value = newStatus;
+    statusSelect.className = 'cell-select ' + statusClass(newStatus);
+  }
+
+  updateCaseStatus(tr);
+  closeUpdateModal();
+  refreshDashboard();
+}
+
+/* seed example row */
+addRegisterRow({
+  orderNo:'PO-2026-0001', orderDate:'2026-09-02', orderType:'Special Order(ZSO)',
+  jobCard:'JC-11234', customer:'Rohan Mehra', vehicle:'WB-06 AB 1234',
+  vin:'TMBJJ7NX0M0123456', partNo:'5Q0129620E', partDesc:'Air Filter Element', partCategory:'Genuine Parts',
+  qty:2, price:850, supplier:'Skoda Auto India', status:'Ordered',
+  expected:'2026-09-08', recv:0, recvDate:'', dmsReceipt:'', dmsReceiptDate:'', invoice:'', remarks:'Urgent — customer waiting'
+}, true);
+
+/* =====================================================================
+   NEW ORDER MODAL
+===================================================================== */
+function openOrderModal(){
+  document.getElementById('orderModal').classList.add('active');
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('f-orderdate').value = today;
+}
+function closeOrderModal(){
+  document.getElementById('orderModal').classList.remove('active');
+}
+function saveOrder(){
+  const partNo = document.getElementById('f-partno').value.trim();
+  if(!partNo){ alert('Part No. is required.'); return; }
+
+  const orderType = document.getElementById('f-ordertype').value;
+  const jobCard = document.getElementById('f-jobcard').value.trim();
+  const customer = document.getElementById('f-customer').value.trim();
+  const vehicle = document.getElementById('f-vehicle').value.trim();
+  const vin = document.getElementById('f-vin').value.trim();
+  const status = document.getElementById('f-status').value;
+  const supplier = document.getElementById('f-supplier').value.trim();
+
+  if(!supplier || supplier !== 'Skoda Auto India'){
+    alert('Supplier is mandatory and must be "Skoda Auto India".');
+    return;
+  }
+  if(orderType === 'Special Order(ZSO2)' && !jobCard){
+    alert('Job Card / RO No. is mandatory for Order Type "Special Order(ZSO2)".');
+    return;
+  }
+  if(orderType === 'Special Order(ZSO)' && (!customer || !vehicle || !vin)){
+    alert('Customer Name, Vehicle Reg. No. and VIN are all mandatory for Order Type "Special Order(ZSO)".');
+    return;
+  }
+
+  const data = {
+    orderNo: document.getElementById('f-orderno').value.trim(),
+    orderDate: document.getElementById('f-orderdate').value,
+    orderType: orderType,
+    jobCard: jobCard,
+    customer: customer,
+    vehicle: vehicle,
+    vin: vin,
+    partNo: partNo,
+    partDesc: document.getElementById('f-partdesc').value.trim(),
+    partCategory: document.getElementById('f-partcategory').value,
+    qty: parseFloat(document.getElementById('f-qty').value)||0,
+    price: parseFloat(document.getElementById('f-price').value)||0,
+    supplier: supplier,
+    status: status,
+    expected: document.getElementById('f-expected').value,
+    recv: 0,
+    recvDate: '',
+    dmsReceipt: '',
+    dmsReceiptDate: '',
+    invoice: document.getElementById('f-invoice').value.trim(),
+    remarks: document.getElementById('f-remarks').value.trim(),
+  };
+  addRegisterRow(data, false);
+  closeOrderModal();
+  document.querySelectorAll('#orderModal input[type=text], #orderModal input[type=number], #orderModal textarea').forEach(el=>{
+    if(el.id!=='f-qty' && el.id!=='f-price' && el.id!=='f-supplier') el.value='';
+  });
+  document.getElementById('f-qty').value=1;
+  document.getElementById('f-price').value=0;
+  document.getElementById('f-supplier').value='Skoda Auto India';
+  refreshDashboard();
+}
+function delRow(cell){
+  // used by Parts Master rows only (no admin gate there)
+  const tr = cell.closest('tr');
+  tr.remove();
+  refreshDashboard();
+}
+
+/* =====================================================================
+   PARTS MASTER
+===================================================================== */
+function calcMaster(cell){
+  const tr = cell.closest('tr');
+  const stock = parseFloat(tr.querySelector('.stock')?.textContent) || 0;
+  const reorder = parseFloat(tr.querySelector('.reorder')?.textContent) || 0;
+  const flagCell = tr.querySelector('.flag');
+  flagCell.innerHTML = stock < reorder
+    ? '<span class="status-pill st-Backorder">Reorder</span>'
+    : '<span class="status-pill st-Received">OK</span>';
+  refreshDashboard();
+}
+
+/* =====================================================================
+   PARTS MASTER — bulk Excel tools (stock upload, movement upload, reorder CSV)
+===================================================================== */
+function readExcelFile(file, callback){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      callback(null, json);
+    }catch(err){
+      callback(err);
+    }
+  };
+  reader.onerror = ()=> callback(new Error('Could not read file.'));
+  reader.readAsArrayBuffer(file);
+}
+function normalizeKeys(row){
+  const out = {};
+  Object.keys(row).forEach(k=>{ out[k.trim().toLowerCase()] = row[k]; });
+  return out;
+}
+function getField(rowNorm, candidates){
+  for(const c of candidates){
+    if(rowNorm[c] !== undefined && rowNorm[c] !== '') return rowNorm[c];
+  }
+  return '';
+}
+function findMasterRowByPartNo(partNo){
+  const masterRows = document.querySelectorAll('#table-master tbody tr');
+  let matched = null;
+  masterRows.forEach(tr=>{
+    if(tr.children[1]?.textContent.trim().toLowerCase() === partNo.toLowerCase()) matched = tr;
+  });
+  return matched;
+}
+
+function handleStockUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){
+    alert('Could not load the Excel library. Check your internet connection and try again.');
+    input.value=''; return;
+  }
+  readExcelFile(file, (err, rows)=>{
+    if(err){ alert('Could not read this file — make sure it is a valid Excel or CSV file.'); input.value=''; return; }
+    let updated=0, added=0, skipped=0;
+    rows.forEach(row=>{
+      const rn = normalizeKeys(row);
+      const partNo = String(getField(rn, ['part no.','part no','partno','part number'])).trim();
+      if(!partNo){ skipped++; return; }
+      const stock = parseFloat(getField(rn, ['current stock','stock','qty','quantity'])) || 0;
+      const matched = findMasterRowByPartNo(partNo);
+      if(matched){
+        const stockCell = matched.querySelector('.stock');
+        stockCell.textContent = stock;
+        calcMaster(stockCell);
+        updated++;
+      } else {
+        addMasterRowFromData({partNo, desc:'', category:'', price:'', stock, reorder:0, maxLevel:0, minLevel:0, bin:'', supplier:''});
+        added++;
+      }
+    });
+    refreshDashboard();
+    input.value='';
+    alert(`Stock upload complete: ${updated} part(s) updated, ${added} new part(s) added${skipped?`, ${skipped} row(s) skipped (no Part No.)`:''}.`);
+  });
+}
+
+function handleMovementUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){
+    alert('Could not load the Excel library. Check your internet connection and try again.');
+    input.value=''; return;
+  }
+  readExcelFile(file, (err, rows)=>{
+    if(err){ alert('Could not read this file — make sure it is a valid Excel or CSV file.'); input.value=''; return; }
+    const monthCandidates = [
+      ['month 1','m1','mon1'],
+      ['month 2','m2','mon2'],
+      ['month 3','m3','mon3'],
+      ['month 4','m4','mon4'],
+      ['month 5','m5','mon5'],
+      ['month 6','m6','mon6'],
+    ];
+    let updated=0, added=0, skipped=0;
+    rows.forEach(row=>{
+      const rn = normalizeKeys(row);
+      const partNo = String(getField(rn, ['part no.','part no','partno','part number'])).trim();
+      if(!partNo){ skipped++; return; }
+      let total = 0;
+      monthCandidates.forEach(cands=>{ total += parseFloat(getField(rn, cands)) || 0; });
+      const avgMonthly = total / 6;
+      const avgDaily = avgMonthly / 30;
+      const maxLevel = Math.round(avgDaily * 30);
+      const reorderLevel = Math.round(avgDaily * 20);
+      const minLevel = Math.round(avgDaily * 10);
+
+      const matched = findMasterRowByPartNo(partNo);
+      if(matched){
+        matched.querySelector('.reorder').textContent = reorderLevel;
+        matched.querySelector('.maxlevel').textContent = maxLevel;
+        matched.querySelector('.minlevel').textContent = minLevel;
+        calcMaster(matched.querySelector('.reorder'));
+        updated++;
+      } else {
+        addMasterRowFromData({partNo, desc:'', category:'', price:'', stock:0, reorder:reorderLevel, maxLevel, minLevel, bin:'', supplier:''});
+        added++;
+      }
+    });
+    refreshDashboard();
+    input.value='';
+    alert(`Movement upload complete: ${updated} part(s) updated, ${added} new part(s) added${skipped?`, ${skipped} row(s) skipped (no Part No.)`:''}.\n\nMax/Reorder/Min levels were calculated from the 6-month average (30/20/10 days of average usage).`);
+  });
+}
+
+function exportReorderListCSV(){
+  const masterRows = document.querySelectorAll('#table-master tbody tr');
+  const rows = [];
+  masterRows.forEach(tr=>{
+    const partNo = tr.children[1]?.textContent.trim();
+    if(!partNo) return;
+    const flag = tr.querySelector('.flag')?.textContent.trim();
+    if(flag !== 'Reorder') return;
+    const desc = tr.children[2]?.textContent.trim()||'';
+    const stock = parseFloat(tr.querySelector('.stock')?.textContent) || 0;
+    const reorder = parseFloat(tr.querySelector('.reorder')?.textContent) || 0;
+    const maxLevel = parseFloat(tr.querySelector('.maxlevel')?.textContent) || 0;
+    const target = maxLevel > 0 ? maxLevel : reorder;
+    const qty = Math.max(target - stock, 0);
+    rows.push({partNo, desc, stock, reorder, maxLevel, qty});
+  });
+  if(rows.length===0){ alert('No parts are currently at or below their reorder level.'); return; }
+
+  const headers = ['Part No.','Part Description','Current Stock','Reorder Level','Max Level','Qty to Order'];
+  const esc = (v)=> `"${String(v).replace(/"/g,'""')}"`;
+  const csvLines = [headers.map(esc).join(',')];
+  rows.forEach(r=>{
+    csvLines.push([r.partNo, r.desc, r.stock, r.reorder, r.maxLevel, r.qty].map(esc).join(','));
+  });
+  const blob = new Blob([csvLines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `Skoda_Reorder_List_${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function addMasterRow(){
+  const tbody = document.querySelector('#table-master tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="rowdel" onclick="delRow(this)">✕</td>
+    <td contenteditable="true"></td>
+    <td contenteditable="true"></td>
+    <td contenteditable="true"></td>
+    <td contenteditable="true" class="num"></td>
+    <td contenteditable="true" class="num stock" oninput="calcMaster(this)">0</td>
+    <td contenteditable="true" class="num reorder" oninput="calcMaster(this)">0</td>
+    <td contenteditable="true" class="num maxlevel">0</td>
+    <td contenteditable="true" class="num minlevel">0</td>
+    <td class="center readonly flag"><span class="status-pill st-Received">OK</span></td>
+    <td contenteditable="true"></td>
+    <td contenteditable="true"></td>`;
+  tbody.appendChild(tr);
+}
+function getMasterRowData(tr){
+  return {
+    partNo: tr.children[1]?.textContent.trim()||'',
+    desc: tr.children[2]?.textContent.trim()||'',
+    category: tr.children[3]?.textContent.trim()||'',
+    price: tr.children[4]?.textContent.trim()||'',
+    stock: tr.children[5]?.textContent.trim()||'',
+    reorder: tr.children[6]?.textContent.trim()||'',
+    maxLevel: tr.children[7]?.textContent.trim()||'',
+    minLevel: tr.children[8]?.textContent.trim()||'',
+    bin: tr.children[10]?.textContent.trim()||'',
+    supplier: tr.children[11]?.textContent.trim()||'',
+  };
+}
+function addMasterRowFromData(d){
+  const tbody = document.querySelector('#table-master tbody');
+  const tr = document.createElement('tr');
+
+  const delTd=document.createElement('td');
+  delTd.className='rowdel';
+  delTd.textContent='✕';
+  delTd.onclick=()=>delRow(delTd);
+  tr.appendChild(delTd);
+
+  const mk=(text)=>{ const td=document.createElement('td'); td.contentEditable='true'; td.textContent=text||''; return td; };
+  tr.appendChild(mk(d.partNo));
+  tr.appendChild(mk(d.desc));
+  tr.appendChild(mk(d.category));
+
+  const priceTd=document.createElement('td'); priceTd.contentEditable='true'; priceTd.className='num'; priceTd.textContent=d.price||0;
+  tr.appendChild(priceTd);
+
+  const stockTd=document.createElement('td'); stockTd.contentEditable='true'; stockTd.className='num stock'; stockTd.textContent=d.stock||0;
+  stockTd.addEventListener('input', ()=>calcMaster(stockTd));
+  tr.appendChild(stockTd);
+
+  const reorderTd=document.createElement('td'); reorderTd.contentEditable='true'; reorderTd.className='num reorder'; reorderTd.textContent=d.reorder||0;
+  reorderTd.addEventListener('input', ()=>calcMaster(reorderTd));
+  tr.appendChild(reorderTd);
+
+  const maxTd=document.createElement('td'); maxTd.contentEditable='true'; maxTd.className='num maxlevel'; maxTd.textContent=d.maxLevel||0;
+  tr.appendChild(maxTd);
+
+  const minTd=document.createElement('td'); minTd.contentEditable='true'; minTd.className='num minlevel'; minTd.textContent=d.minLevel||0;
+  tr.appendChild(minTd);
+
+  const flagTd=document.createElement('td'); flagTd.className='center readonly flag';
+  tr.appendChild(flagTd);
+
+  tr.appendChild(mk(d.bin));
+  tr.appendChild(mk(d.supplier));
+
+  tbody.appendChild(tr);
+  calcMaster(stockTd);
+}
+
+/* =====================================================================
+   BACKUP & RESTORE — full Register + Parts Master snapshot as JSON
+===================================================================== */
+function downloadBackup(){
+  const regRows = Array.from(document.querySelectorAll('#register-tbody tr')).filter(tr=>tr.children[8]?.textContent.trim());
+  const masterRows = Array.from(document.querySelectorAll('#table-master tbody tr')).filter(tr=>tr.children[1]?.textContent.trim());
+
+  const backup = {
+    format: 'skoda-parts-desk-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    dealership: document.querySelector('.doc-meta input')?.value || '',
+    register: regRows.map(tr=>{
+      const d = getRowData(tr);
+      return {
+        orderNo:d.orderNo, orderDate:d.orderDate, orderType:d.orderType, jobCard:d.jobCard,
+        customer:d.customer, vehicle:d.vehicle, vin:d.vin, partNo:d.partNo, partDesc:d.partDesc,
+        partCategory:d.partCategory, qty:parseFloat(d.qty)||0, price:parseFloat(d.price)||0,
+        supplier:d.supplier, status:d.status, expected:d.expected, recv:parseFloat(d.recv)||0,
+        recvDate:d.recvDate, dmsReceipt:d.dmsNo, dmsReceiptDate:d.dmsDate, invoice:d.invoice, remarks:d.remarks,
+      };
+    }),
+    master: masterRows.map(tr=>getMasterRowData(tr)),
+  };
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `Skoda_Parts_Desk_Backup_${today}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  document.getElementById('backup-summary').textContent =
+    `Last backup: ${backup.register.length} order(s), ${backup.master.length} parts master row(s) — ${new Date().toLocaleString('en-GB')}`;
+}
+
+function handleRestoreFileChosen(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let backup;
+    try{ backup = JSON.parse(e.target.result); }
+    catch(err){ alert('This file is not a valid backup (could not read it as JSON).'); input.value=''; return; }
+    if(!backup || !Array.isArray(backup.register) || !Array.isArray(backup.master)){
+      alert('This file does not look like a Parts Desk backup.');
+      input.value='';
+      return;
+    }
+    const backedUpAt = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('en-GB') : 'unknown date';
+    const msg = `This will REPLACE everything currently in the Order Register and Parts Master with this backup:\n\n`+
+                `${backup.register.length} order(s)\n${backup.master.length} parts master row(s)\nBacked up: ${backedUpAt}\n\nContinue?`;
+    if(!confirm(msg)){ input.value=''; return; }
+
+    document.getElementById('register-tbody').innerHTML = '';
+    document.querySelector('#table-master tbody').innerHTML = '';
+
+    backup.register.forEach(row=> addRegisterRow(row, false));
+    backup.master.forEach(row=> addMasterRowFromData(row));
+
+    if(backup.dealership){
+      const dealerInput = document.querySelector('.doc-meta input');
+      if(dealerInput) dealerInput.value = backup.dealership;
+    }
+
+    applyAdminMode();
+    refreshDashboard();
+    input.value='';
+    alert('Backup restored.');
+  };
+  reader.readAsText(file);
+}
+
+
+/* =====================================================================
+   DASHBOARD + MONTH-WISE REPORT
+===================================================================== */
+function populateMonthFilterOptions(){
+  const regRows = document.querySelectorAll('#register-tbody tr');
+  const keysSet = new Set();
+  regRows.forEach(tr=>{
+    const partNo = tr.children[8]?.textContent.trim();
+    if(!partNo) return;
+    const dateInput = tr.children[2]?.querySelector('input[type=date]');
+    const dateVal = dateInput ? dateInput.value : '';
+    if(dateVal) keysSet.add(dateVal.slice(0,7));
+  });
+  const keysSorted = Array.from(keysSet).sort();
+  const filterSel = document.getElementById('monthFilter');
+  const prevChoice = filterSel.value;
+  filterSel.innerHTML = '<option value="all">All months</option>' +
+    keysSorted.map(k=>{
+      const [y,m]=k.split('-');
+      const label = MONTH_NAMES[parseInt(m,10)-1]+' '+y;
+      return `<option value="${k}">${label}</option>`;
+    }).join('');
+  if(keysSorted.includes(prevChoice) || prevChoice==='all') filterSel.value = prevChoice;
+}
+
+function getFilteredRegisterRows(filterVal){
+  const all = Array.from(document.querySelectorAll('#register-tbody tr')).filter(tr=>tr.children[8]?.textContent.trim());
+  if(!filterVal || filterVal==='all') return all;
+  return all.filter(tr=>{
+    const dateInput = tr.children[2]?.querySelector('input[type=date]');
+    const dateVal = dateInput ? dateInput.value : '';
+    return dateVal.slice(0,7) === filterVal;
+  });
+}
+
+function refreshDashboard(){
+  populateMonthFilterOptions();
+  const filterVal = document.getElementById('monthFilter').value;
+  const rows = getFilteredRegisterRows(filterVal);
+
+  let total=0, pending=0, received=0, backorder=0, value=0, pendingValue=0;
+  rows.forEach(tr=>{
+    total++;
+    const status = tr.children[15]?.querySelector('select')?.value || '';
+    const dmsReceipt = tr.children[20]?.textContent || '';
+    const caseStatus = computeCaseStatus(status, dmsReceipt);
+    const amt = parseFloat((tr.querySelector('.total')?.textContent||'0').replace(/,/g,'')) || 0;
+    if(caseStatus==='Open' && status!=='Backorder') pending++;
+    if(caseStatus==='Closed') received++;
+    if(status==='Backorder') backorder++;
+    if(status!=='Cancelled') value+=amt;
+    if(status!=='Cancelled' && caseStatus!=='Closed') pendingValue+=amt;
+  });
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-pending').textContent = pending;
+  document.getElementById('kpi-received').textContent = received;
+  document.getElementById('kpi-backorder').textContent = backorder;
+  document.getElementById('kpi-value').textContent = '₹'+value.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('kpi-pendingvalue').textContent = '₹'+pendingValue.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const masterRows = document.querySelectorAll('#table-master tbody tr');
+  let reorderCount=0;
+  masterRows.forEach(tr=>{
+    if(tr.querySelector('.flag')?.textContent.trim()==='Reorder') reorderCount++;
+  });
+  document.getElementById('kpi-reorder').textContent = reorderCount;
+
+  buildOrderTypeReport(rows);
+  buildPartCategoryReport(rows);
+  buildMonthlyReport();
+  updateExportCounts();
+}
+
+/* =====================================================================
+   EXPORT — Excel workbook with Open Cases / Closed Cases sheets
+===================================================================== */
+function getRowData(tr){
+  const g = i => tr.children[i];
+  return {
+    orderNo: g(1)?.textContent.trim()||'',
+    orderDate: g(2)?.querySelector('input')?.value||'',
+    orderType: g(3)?.querySelector('select')?.value||'',
+    jobCard: g(4)?.textContent.trim()||'',
+    customer: g(5)?.textContent.trim()||'',
+    vehicle: g(6)?.textContent.trim()||'',
+    vin: g(7)?.textContent.trim()||'',
+    partNo: g(8)?.textContent.trim()||'',
+    partDesc: g(9)?.textContent.trim()||'',
+    partCategory: g(10)?.querySelector('select')?.value||'',
+    qty: g(11)?.querySelector('input')?.value||'',
+    price: g(12)?.querySelector('input')?.value||'',
+    total: g(13)?.textContent.trim()||'',
+    supplier: g(14)?.textContent.trim()||'',
+    status: g(15)?.querySelector('select')?.value||'',
+    expected: g(16)?.querySelector('input')?.value||'',
+    recv: g(17)?.textContent.trim()||'',
+    pending: g(18)?.textContent.trim()||'',
+    recvDate: g(19)?.dataset.iso||'',
+    dmsNo: g(20)?.textContent.trim()||'',
+    dmsDate: g(21)?.dataset.iso||'',
+    caseStatus: g(23)?.textContent.trim()||'',
+    invoice: g(24)?.textContent.trim()||'',
+    remarks: g(25)?.textContent.trim()||'',
+  };
+}
+function updateExportCounts(){
+  const regRows = document.querySelectorAll('#register-tbody tr');
+  let openCount=0, closedCount=0;
+  regRows.forEach(tr=>{
+    const partNo = tr.children[8]?.textContent.trim();
+    if(!partNo) return;
+    const status = tr.children[15]?.querySelector('select')?.value || '';
+    const dmsReceipt = tr.children[20]?.textContent || '';
+    const cs = computeCaseStatus(status, dmsReceipt);
+    if(cs==='Closed') closedCount++; else openCount++;
+  });
+  const oc = document.getElementById('export-open-count');
+  const cc = document.getElementById('export-closed-count');
+  if(oc) oc.textContent = openCount;
+  if(cc) cc.textContent = closedCount;
+}
+function exportToExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert('Could not load the Excel export library. Check your internet connection and try again.');
+    return;
+  }
+  const regRows = document.querySelectorAll('#register-tbody tr');
+  const openRows = [], closedRows = [];
+  const colHeaders = {
+    orderNo:'Order No.', orderDate:'Order Date', orderType:'Order Type', jobCard:'Job Card / RO No.',
+    customer:'Customer Name', vehicle:'Vehicle Reg. No.', vin:'VIN', partNo:'Part No.',
+    partDesc:'Part Description', partCategory:'Part Category', qty:'Qty Ordered', price:'Unit Price (₹)',
+    total:'Total (₹)', supplier:'Supplier', status:'Status', expected:'Expected Delivery',
+    recv:'Qty Received', pending:'Qty Pending', recvDate:'Received Date', dmsNo:'DMS Receipt No.',
+    dmsDate:'DMS Receipt Date', caseStatus:'Case Status', invoice:'Invoice No.', remarks:'Remarks',
+  };
+  regRows.forEach(tr=>{
+    const partNo = tr.children[8]?.textContent.trim();
+    if(!partNo) return;
+    const d = getRowData(tr);
+    const rowObj = {};
+    Object.keys(colHeaders).forEach(key=>{ rowObj[colHeaders[key]] = d[key]; });
+    if(d.caseStatus === 'Closed') closedRows.push(rowObj); else openRows.push(rowObj);
+  });
+
+  const headerRow = Object.values(colHeaders);
+  const wb = XLSX.utils.book_new();
+  const wsOpen = XLSX.utils.json_to_sheet(openRows, {header: headerRow});
+  const wsClosed = XLSX.utils.json_to_sheet(closedRows, {header: headerRow});
+  XLSX.utils.book_append_sheet(wb, wsOpen, 'Open Cases');
+  XLSX.utils.book_append_sheet(wb, wsClosed, 'Closed Cases');
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Skoda_Parts_Order_Register_${today}.xlsx`);
+}
+
+function renderBreakdownTable(tbodyId, keysOrder, data, colspan){
+  const tbody = document.getElementById(tbodyId);
+  const activeKeys = keysOrder.filter(k=>data[k] && data[k].count>0);
+  if(activeKeys.length===0){
+    tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding:14px;color:var(--ink-soft);">No orders logged yet.</td></tr>`;
+    return;
+  }
+  const totalValue = activeKeys.reduce((sum,k)=> sum + data[k].value, 0) || 1;
+  tbody.innerHTML = activeKeys.map(k=>{
+    const d = data[k];
+    const sharePct = (d.value/totalValue)*100;
+    const barWidth = Math.max(sharePct, 2);
+    return `<tr>
+      <td style="padding:9px 10px;font-weight:600;">${k}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.count}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;">₹${d.value.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.open}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.closed}</td>
+      <td class="bar-cell">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="bar-track" style="flex:1;"><div class="bar-fill" style="width:${barWidth}%"></div></div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);min-width:40px;text-align:right;">${sharePct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildOrderTypeReport(rows){
+  const data = {};
+  ORDER_TYPES.forEach(t=> data[t] = {count:0, value:0, open:0, closed:0});
+  rows.forEach(tr=>{
+    const type = tr.children[3]?.querySelector('select')?.value || '';
+    if(!data[type]) data[type] = {count:0, value:0, open:0, closed:0};
+    const status = tr.children[15]?.querySelector('select')?.value || '';
+    const dmsReceipt = tr.children[20]?.textContent || '';
+    const caseStatus = computeCaseStatus(status, dmsReceipt);
+    const amt = parseFloat((tr.querySelector('.total')?.textContent||'0').replace(/,/g,'')) || 0;
+    data[type].count++;
+    if(status!=='Cancelled') data[type].value += amt;
+    if(caseStatus==='Closed') data[type].closed++; else data[type].open++;
+  });
+  renderBreakdownTable('ordertype-tbody', ORDER_TYPES, data, 6);
+}
+
+function buildPartCategoryReport(rows){
+  const data = {};
+  PART_CATEGORIES.forEach(c=> data[c] = {count:0, value:0, open:0, closed:0});
+  rows.forEach(tr=>{
+    const cat = tr.children[10]?.querySelector('select')?.value || '';
+    if(!data[cat]) data[cat] = {count:0, value:0, open:0, closed:0};
+    const status = tr.children[15]?.querySelector('select')?.value || '';
+    const dmsReceipt = tr.children[20]?.textContent || '';
+    const caseStatus = computeCaseStatus(status, dmsReceipt);
+    const amt = parseFloat((tr.querySelector('.total')?.textContent||'0').replace(/,/g,'')) || 0;
+    data[cat].count++;
+    if(status!=='Cancelled') data[cat].value += amt;
+    if(caseStatus==='Closed') data[cat].closed++; else data[cat].open++;
+  });
+  renderBreakdownTable('category-tbody', PART_CATEGORIES, data, 6);
+}
+
+function buildMonthlyReport(){
+  const regRows = document.querySelectorAll('#register-tbody tr');
+  const months = {}; // key "YYYY-MM" -> stats
+
+  regRows.forEach(tr=>{
+    const partNo = tr.children[8]?.textContent.trim();
+    if(!partNo) return;
+    const dateInput = tr.children[2]?.querySelector('input[type=date]');
+    const dateVal = dateInput ? dateInput.value : '';
+    if(!dateVal) return;
+    const key = dateVal.slice(0,7); // YYYY-MM
+    if(!months[key]) months[key] = {count:0, value:0, received:0, pending:0, backorder:0};
+
+    const status = tr.children[15]?.querySelector('select')?.value || '';
+    const dmsReceipt = tr.children[20]?.textContent || '';
+    const caseStatus = computeCaseStatus(status, dmsReceipt);
+    const amt = parseFloat((tr.querySelector('.total')?.textContent||'0').replace(/,/g,'')) || 0;
+
+    months[key].count++;
+    if(status!=='Cancelled') months[key].value += amt;
+    if(caseStatus==='Closed') months[key].received++;
+    if(caseStatus==='Open' && status!=='Backorder') months[key].pending++;
+    if(status==='Backorder') months[key].backorder++;
+  });
+
+  // filter dropdown is already populated by populateMonthFilterOptions() in refreshDashboard()
+  const filterSel = document.getElementById('monthFilter');
+  const keysSorted = Object.keys(months).sort();
+  const activeFilter = filterSel.value;
+  const keysToShow = activeFilter==='all' ? keysSorted : keysSorted.filter(k=>k===activeFilter);
+
+  const tbody = document.getElementById('month-tbody');
+  if(keysToShow.length===0){
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:14px;color:var(--ink-soft);">No orders logged yet — add an order to see the monthly breakdown.</td></tr>';
+    return;
+  }
+
+  const maxValue = Math.max(...keysToShow.map(k=>months[k].value), 1);
+  tbody.innerHTML = keysToShow.map(k=>{
+    const [y,m]=k.split('-');
+    const label = MONTH_NAMES[parseInt(m,10)-1]+' '+y;
+    const d = months[k];
+    const pct = Math.max(4, Math.round((d.value/maxValue)*100));
+    return `<tr>
+      <td style="padding:9px 10px;font-weight:600;">${label}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.count}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;">₹${d.value.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.received}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.pending}</td>
+      <td style="padding:9px 10px;text-align:center;">${d.backorder}</td>
+      <td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+refreshDashboard();
+</script>
+</body>
+</html>
